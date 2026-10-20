@@ -26,6 +26,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 header{position:relative;z-index:2;background:linear-gradient(var(--wood-hi),var(--wood));
   padding-block:8px 12px;border-radius:0 0 20px 20px;box-shadow:0 4px 0 #5a3418,0 8px 18px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.btns{display:flex;gap:8px}
 .pill{font-family:var(--display);color:var(--cream);font-size:18px;letter-spacing:.04em;white-space:nowrap}
 .timer{font-family:var(--display);font-size:22px;color:var(--cream);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.22);padding:2px 12px;border-radius:999px;min-width:74px;text-align:center}
@@ -70,6 +71,16 @@ footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding-block:8px 10p
 .card{background:var(--cream);border-radius:24px;padding:24px 22px 20px;width:min(340px,100%);text-align:center;box-shadow:0 6px 0 #d9c49a,0 20px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:12px}
 .card h2{margin:0;font-family:var(--display);font-weight:400;font-size:34px;text-wrap:balance}
 .card p{margin:0;font-size:15px;line-height:1.5;color:#5b4430}
+.card{box-sizing:border-box}
+.menuCard{width:min(380px,100%)}
+.themes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+.theme{border:0;cursor:pointer;background:#fff;border-radius:18px;padding:10px 8px 12px;box-shadow:0 5px 0 #d6cbb4;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--ink);transition:transform .08s,box-shadow .08s}
+.theme:active{transform:translateY(4px);box-shadow:0 1px 0 #d6cbb4}
+.theme:focus-visible{outline:3px solid var(--sun-edge);outline-offset:2px}
+.theme .pics{display:grid;grid-template-columns:1fr 1fr;gap:2px;width:100%;background:#f3ead6;border-radius:12px;padding:4px}
+.theme img{width:100%;aspect-ratio:1;max-width:100%;object-fit:contain}
+.theme b{font-family:var(--display);font-weight:400;font-size:20px}
+.theme small{font-size:12px;color:#8a6f50}
 .btn{border:0;cursor:pointer;font-family:var(--display);font-size:20px;padding:10px 16px;border-radius:14px;background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sun-edge)}
 .btn.alt{background:#fff;box-shadow:0 5px 0 #d6cbb4}
 .btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--sun-edge)}
@@ -83,9 +94,14 @@ footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding-block:8px 10p
     <div class="row">
       <div class="pill" id="lvl">第 1 关</div>
       <div class="timer" id="timer">1:30</div>
+      <div class="btns">
+      <button class="iconbtn" id="home" aria-label="换主题">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>
+      </button>
       <button class="iconbtn" id="restart" aria-label="重新开始本关">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg>
       </button>
+      </div>
     </div>
     <div class="tools">
       <button class="tool" id="tShuffle" aria-label="打乱">
@@ -117,6 +133,14 @@ footer{position:absolute;left:0;right:0;bottom:0;z-index:2;padding-block:8px 10p
     </button>
   </footer>
   <div class="toast" id="toast" style="opacity:0">提示</div>
+</div>
+
+<div class="overlay" id="menu" hidden>
+  <div class="card menuCard">
+    <h2>抓大鹅</h2>
+    <p>选一个主题开始</p>
+    <div class="themes" id="themes"></div>
+  </div>
 </div>
 
 <div class="overlay" id="ov" hidden>
@@ -322,12 +346,14 @@ const FOODS=[
     [[0,0],[.75,0],[.75,2.2],[.7,3.4],[.8,4.6],[.45,1.0]].forEach(([ph,th])=>{const x=Math.sin(ph)*Math.cos(th)*.452,y=Math.cos(ph)*.452*.75+.02,z=Math.sin(ph)*Math.sin(th)*.452;
       const d=part(sph(.07,10),dot,[x,y,z],null,[1,.35,1]);d.lookAt(V(x*2,(y-.02)*2+.02,z*2));d.rotateX(PI/2);o.add(d);});
     return o;}},
- {name:'小鸡',thumb:[.2,0,0],shapes:[['s',.38,[0,0,0]]],
-  build(){const y=mat(0xffe14d,{roughness:.45}),or=mat(0xff9a1f,{roughness:.35});
-    return grp(part(sph(.38,26),y,null,null,[1,.95,1]),part(cone(.05,.16,6),y,[0,.42,0]),part(cone(.04,.13,6),y,[.06,.4,0],[0,0,-.5]),part(cone(.04,.13,6),y,[-.06,.4,0],[0,0,.5]),
-      part(cone(.06,.12,8),or,[0,-.02,.4],[PI/2,0,0]),part(sph(.14,10),y,[.35,-.03,0],[0,0,-.4],[.45,1,.8]),part(sph(.14,10),y,[-.35,-.03,0],[0,0,.4],[.45,1,.8]),
-      part(box(.12,.03,.1),or,[.12,-.37,.05]),part(box(.12,.03,.1),or,[-.12,-.37,.05]),
-      at(face(.95,true),[0,.08,.36]));}},
+  {name:'热狗',thumb:[.3,0,0],shapes:[['s',.19,[-.3,0,0]],['s',.19,[0,0,0]],['s',.19,[.3,0,0]]],
+  build(){
+    const bun=AM(0xe8a24f),o=new THREE.Group();
+    o.add(capX(.66,.17,bun,[0,-.06,-.02],[1,.75,1]));
+    o.add(capX(.84,.105,mat(0xc9452e,{roughness:.3}),[0,.07,.05]));
+    const pts=[];for(let i=0;i<=10;i++){pts.push(V(-.42+i*.084,.15+(i%2?.04:-.0),.12));}
+    o.add(part(C('must',()=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),40,.02,6,false)),mat(0xffd21f,{roughness:.3})));
+    o.add(at(face(.75),[0,-.08,.15]));return o;}},
 ];
 
 /* ---------- animals: tsum-style round heads, features stuck onto the head surface ---------- */
@@ -375,7 +401,7 @@ function whiskers(h,y0,col){const g=[],m=AM(col||0x5a4636);[-1,1].forEach(sd=>[0
 const BACK=['b',[.2,.2,.04],[0,0,-.36]];
 const HEAD=[['s',.43,[0,0,0]],BACK];
 
-const ANIMALS=[
+const HEADS=[
  {name:'橘猫',thumb:[.15,0,0],shapes:HEAD,build(){
    const h=Hd(.42,1.08,.92,.95),o=grp(part(sph(.42,30),AM(0xffa94d),null,null,[h.sx,h.sy,h.sz]));
    [-1,1].forEach(sd=>{o.add(part(cone(.14,.25,16),AM(0xffa94d),[sd*.27,.37,0],[0,0,-sd*.4]));o.add(part(cone(.085,.15,12),AM(0xffb3c3),[sd*.262,.35,.06],[0,0,-sd*.4]));});
@@ -454,6 +480,83 @@ const ANIMALS=[
    o.add(part(C('mtail',()=>new THREE.TorusGeometry(.14,.018,6,16,PI*1.3)),AM(0xffb1c2),[.18,-.22,-.36],[0,.6,0]));
    o.add(animalFace(h,{ex:.13,ey:.05,mouth:'w',mouthY:-.1}));return o;}},
 ];
+/* ---------- full-body animals: built as a front view in the xy plane, face toward +z, lying on their backs ---------- */
+const HB=(n,k,p)=>{const g=HEADS.find(a=>a.name===n).build();g.scale.setScalar(k);g.position.set(p[0],p[1],p[2]);return g;};
+function capX(len,r,m,p,sc){const g=grp(part(cyl(r,r,len,20),m,null,[0,0,PI/2]),part(sph(r,20),m,[len/2,0,0]),part(sph(r,20),m,[-len/2,0,0]));if(p)g.position.set(p[0],p[1],p[2]);if(sc)g.scale.set(sc[0],sc[1],sc[2]);return g;}
+function unitHead(col,k,p,opts){ // plain round head with a face, for animals that have no tsum head
+  const h=Hd(.42,1.05,.95,.95),g=grp(part(sph(.42,28),AM(col),null,null,[h.sx,h.sy,h.sz]));
+  g.add(animalFace(h,opts||{ex:.14,ey:.05}));g.scale.setScalar(k);g.position.set(p[0],p[1],p[2]);return g;
+}
+const sp=(r,x,y,z)=>['s',r,[x,y,z]];
+const bk=(hx,hy,x,y,z)=>['b',[hx,hy,.03],[x,y,z]];
+
+const ANIMALS=[
+ {name:'腊肠狗',lie:true,thumb:[.15,0,0],shapes:[sp(.2,-.45,0,0),sp(.2,-.15,0,0),sp(.2,.15,0,0),sp(.27,.42,.12,.03),bk(.6,.18,0,.03,-.22)],build(){
+   const c=AM(0xf0cf9e),b=AM(0x8a5a2e),o=grp(capX(.62,.2,c,[-.15,0,0],[1,1,.85]));
+   o.add(part(sph(.2,16),b,[-.2,.1,.07],null,[1.7,.55,.5]));
+   [-.45,-.28,.06,.22].forEach(x=>o.add(part(cyl(.06,.07,.2,10),c,[x,-.22,.02]),part(sph(.075,10),b,[x,-.32,.03],null,[1.1,.6,1])));
+   o.add(part(cone(.05,.26,8),b,[-.6,.14,0],[0,0,.9]));
+   o.add(HB('小狗',.62,[.42,.12,.03]));return o;}},
+ {name:'橘猫',lie:true,thumb:[.15,0,0],shapes:[sp(.28,0,-.22,0),sp(.3,0,.22,.04),bk(.25,.4,0,0,-.26)],build(){
+   const or=AM(0xffa94d),w=AM(0xfff3e4),o=grp(part(sph(.3,24),or,[0,-.22,0],null,[1,.95,.75]));
+   o.add(part(sph(.18,16),w,[0,-.25,.17],null,[1,1.1,.3]));
+   [-1,1].forEach(sd=>o.add(part(sph(.08,10),w,[sd*.11,-.47,.13],null,[1,.7,1])));
+   o.add(part(C('ctail',()=>new THREE.TorusGeometry(.2,.05,8,18,PI*1.2)),or,[.28,-.28,-.02],[0,0,-.5]));
+   o.add(part(sph(.055,8),AM(0xe26f1d),[.45,-.08,-.02]));
+   o.add(HB('橘猫',.72,[0,.22,.04]));return o;}},
+ {name:'小猪',lie:true,thumb:[.15,0,0],shapes:[sp(.38,0,.05,.03),bk(.25,.25,0,0,-.32)],build(){
+   const pk=AM(0xffb3c6),o=grp(HB('小猪',.88,[0,.05,.03]));
+   [[-.2,-.33,.1],[.2,-.33,.1],[-.27,-.28,-.1],[.27,-.28,-.1]].forEach(p=>o.add(part(cyl(.07,.075,.16,10),pk,p),part(sph(.075,10),AM(0xe0708f),[p[0],p[1]-.08,p[2]],null,[1,.5,1])));
+   o.add(part(C('ptail',()=>new THREE.TorusGeometry(.05,.016,6,14,PI*1.7)),AM(0xff93ad),[.4,-.05,-.12]));return o;}},
+ {name:'熊猫',lie:true,thumb:[.15,0,0],shapes:[sp(.38,0,-.3,0),sp(.37,0,.28,.04),bk(.3,.5,0,-.05,-.33)],build(){
+   const w=AM(0xfafafa),k=AM(0x232323),o=grp(part(sph(.42,26),w,[0,-.3,0],null,[1.05,.9,.8]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.15,14),k,[sd*.38,-.2,.08],[0,0,sd*.45],[.6,1.25,.7]));o.add(part(sph(.17,14),k,[sd*.24,-.62,.12],null,[1,.8,.8]));o.add(part(sph(.08,10),AM(0xffc6d2),[sd*.24,-.64,.24],null,[1,.8,.3]));});
+   o.add(part(cyl(.035,.035,.62,8),AM(0x6cc04a),[.3,-.12,.24],[0,0,.35]));
+   [-.05,.12].forEach(y=>o.add(part(cyl(.04,.04,.025,8),AM(0x4f9a35),[.3-.35*y,-.12+y,.24],[0,0,.35])));
+   o.add(HB('熊猫',.9,[0,.28,.04]));return o;}},
+ {name:'青蛙',lie:true,thumb:[.25,0,0],shapes:[sp(.37,0,0,0),sp(.12,-.18,.26,.12),sp(.12,.18,.26,.12),sp(.13,-.42,-.2,0),sp(.13,.42,-.2,0),bk(.35,.2,0,0,-.33)],build(){
+   const g=AM(0x6fd35a),o=grp(HB('青蛙',.88,[0,0,0]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.18,14),g,[sd*.42,-.2,-.02],[0,0,sd*.5],[1.45,.6,.55]));o.add(part(sph(.07,10),AM(0x9be283),[sd*.6,-.32,0],null,[1.4,.6,1]));o.add(part(sph(.07,10),AM(0x9be283),[sd*.2,-.34,.12],null,[1.3,.6,1]));});
+   return o;}},
+ {name:'兔子',lie:true,thumb:[.1,0,0],shapes:[sp(.24,0,-.27,0),sp(.3,0,.15,.04),sp(.08,-.1,.6,0),sp(.08,.1,.6,0),bk(.2,.4,0,0,-.24)],build(){
+   const w=AM(0xfffcf6),o=grp(part(sph(.24,22),w,[0,-.27,0],null,[1,1.1,.85]));
+   [-1,1].forEach(sd=>o.add(part(sph(.1,12),w,[sd*.12,-.5,.08],null,[.85,.5,1.3]),part(sph(.05,8),AM(0xffa7bd),[sd*.12,-.52,.2],null,[1,.6,.4])));
+   o.add(part(sph(.1,10),w,[-.24,-.32,-.05]));
+   o.add(HB('兔子',.72,[0,.15,.04]));return o;}},
+ {name:'小鸡',lie:true,thumb:[.15,0,0],shapes:[sp(.25,0,0,0),bk(.12,.12,0,0,-.22)],build(){
+   const o=grp(HB('小鸡',.58,[0,0,0]));
+   [-1,1].forEach(sd=>o.add(part(box(.1,.025,.08),AM(0xff9a1f),[sd*.08,-.27,.06])));return o;}},
+ {name:'企鹅',lie:true,thumb:[.15,0,0],shapes:[sp(.3,0,-.2,0),sp(.29,0,.28,.03),bk(.2,.4,0,0,-.25)],build(){
+   const nv=AM(0x2f3f78),o=grp(part(sph(.32,24),nv,[0,-.2,0],null,[1,1.25,.8]));
+   o.add(part(sph(.26,20),AM(0xffffff),[0,-.22,.12],null,[1,1.15,.5]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.15,12),nv,[sd*.33,-.15,0],[0,0,-sd*.3],[.35,1,.6]));o.add(part(sph(.08,10),AM(0xffa21f),[sd*.12,-.6,.08],null,[1.25,.45,1]));});
+   o.add(HB('企鹅',.68,[0,.28,.03]));return o;}},
+ {name:'小鲸鱼',lie:true,thumb:[.15,0,0],shapes:[sp(.38,.05,0,0),sp(.3,-.45,0,0),sp(.12,-.88,0,0),bk(.6,.2,-.3,0,-.34)],build(){
+   const bl=AM(0x4ea3f5),o=grp(HB('小鲸鱼',1.0,[.05,0,0]));
+   o.add(part(sph(.32,22),bl,[-.42,-.02,-.02],null,[1.45,.8,.85]));
+   o.add(part(sph(.3,20),AM(0xe2f2ff),[-.38,-.15,.06],null,[1.3,.4,.7]));
+   [-1,1].forEach(sd=>o.add(part(sph(.16,14),bl,[-.92,sd*.12,0],[0,0,sd*.75],[1.3,.4,.5])));
+   return o;}},
+ {name:'乌龟',lie:true,thumb:[.05,0,0],shapes:[sp(.3,0,.15,0),sp(.3,0,-.15,0),sp(.17,0,.58,.05),bk(.3,.38,0,0,-.19)],build(){
+   const sh=Hd(.42,1,1.15,.5),gr=AM(0x8fd16a),o=grp(part(sph(.42,28),AM(0x9b7a3f),null,null,[1,1.15,.5]));
+   o.add(part(cyl(.42,.42,.06,32),AM(0x7a5c2c),[0,0,-.02],[PI/2,0,0],[1,1,1.15]));
+   [[0,0],[0,.27],[0,-.27],[.22,.13],[-.22,.13],[.22,-.13],[-.22,-.13]].forEach(([x,y])=>o.add(flat(.09,1,1,0xd2ab5f,sh,x,y,-.004)));
+   [[-1,1],[1,1],[-1,-1],[1,-1]].forEach(([a,b])=>o.add(part(sph(.12,12),gr,[a*.38,b*.32,-.02],[0,0,a*b*.5],[1,.7,.55])));
+   o.add(part(cone(.06,.16,8),gr,[0,-.55,-.02],[0,0,PI]));
+   o.add(unitHead(0x8fd16a,.42,[0,.6,.05],{ex:.15,ey:.06,mouthY:-.08,blushY:-.02}));return o;}},
+ {name:'毛毛虫',lie:true,thumb:[.15,0,0],shapes:[sp(.21,.45,.08,0),sp(.19,.14,0,0),sp(.17,-.14,.05,0),sp(.15,-.4,0,0),sp(.12,-.62,.04,0),bk(.5,.12,-.08,0,-.18)],build(){
+   const o=new THREE.Group(),cols=[0xe64fa6,0xff8ccf];
+   [[.14,0,.19],[-.14,.05,.17],[-.4,0,.15],[-.62,.04,.12]].forEach(([x,y,r],i)=>{o.add(part(sph(r,18),AM(cols[i%2]),[x,y,0],null,[1,1,.85]));o.add(part(sph(.035,8),AM(0x5b2a4a),[x,y-r*.9,.05]));});
+   const hd=unitHead(0xe64fa6,.5,[.45,.08,0],{ex:.14,ey:.05,mouthY:-.07});
+   [-1,1].forEach(sd=>{hd.add(part(cyl(.018,.018,.32,6),AM(0x5b2a4a),[sd*.16,.5,0],[0,0,-sd*.35]));hd.add(part(sph(.06,8),AM(0xffd23f),[sd*.22,.66,0]));});
+   o.add(hd);return o;}},
+ {name:'小老鼠',lie:true,thumb:[.15,0,0],shapes:[sp(.22,0,.1,.03),sp(.19,0,-.17,0),bk(.15,.25,0,-.03,-.19)],build(){
+   const gr=AM(0xb7bdc9),o=grp(part(sph(.2,18),gr,[0,-.17,0],null,[1,.85,.75]));
+   [-1,1].forEach(sd=>o.add(part(sph(.05,8),AM(0xffb1c2),[sd*.08,-.33,.08],null,[1.2,.6,1])));
+   o.add(part(C('mtail2',()=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3([V(.12,-.24,0),V(.32,-.3,0),V(.44,-.18,0),V(.42,-.02,0),V(.52,.06,0)]),24,.018,6,false)),AM(0xffb1c2)));
+   o.add(HB('小老鼠',.55,[0,.1,.03]));return o;}},
+];
+
 
 const TYPES=ANIMALS.concat(FOODS);
 const THEMES=[{name:'萌宠乐园',from:0,n:ANIMALS.length},{name:'美食小摊',from:ANIMALS.length,n:FOODS.length}];
@@ -527,13 +630,13 @@ function crackIce(it){
 function createItem(type,x,y,z,frozen){
   const T=TYPES[type], mesh=T.build(); mesh.scale.setScalar(S);
   let fc=null; mesh.traverse(o=>{if(o.userData.face)fc=o.userData.face; if(o.isMesh&&!o.userData.noShadow){o.castShadow=true;o.receiveShadow=true;}});
-  const body=new CANNON.Body({mass:1,linearDamping:.12,angularDamping:T.shapes.includes(BACK)?.6:.35});
+  const body=new CANNON.Body({mass:1,linearDamping:.12,angularDamping:T.lie?.6:.35});
   T.shapes.forEach(s=>{const off=new CANNON.Vec3(s[2][0]*S,s[2][1]*S,s[2][2]*S);
     body.addShape(s[0]==='s'?new CANNON.Sphere(s[1]*S):new CANNON.Box(new CANNON.Vec3(s[1][0]*S,s[1][1]*S,s[1][2]*S)),off);});
   body.position.set(x,y,z);
   { // most items land face-up toward the camera, a few tumble randomly
     let q;
-    if(fc&&(T.shapes.includes(BACK)||R()<.85)){
+    if(fc&&(T.lie||R()<.85)){
       if(!T.faceDir){mesh.updateMatrixWorld(true);let fo=null;mesh.traverse(o=>{if(o.userData.face)fo=o;});T.faceDir=fo.getWorldDirection(V(0,0,0)).normalize();}
       const tgt=V((R()-.5)*.6,1,.45+(R()-.5)*.5).normalize();
       q=new THREE.Quaternion().setFromUnitVectors(T.faceDir,tgt);
@@ -583,7 +686,8 @@ function tween(dur,fn,done){tweens.push({t:0,dur,fn,done});}
 const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 
 /* ---------- game state ---------- */
-const LEVELS=[{theme:0,types:6,per:3,time:90,ice:3},{theme:1,types:9,per:6,time:180,ice:12},{theme:0,types:12,per:6,time:240,ice:22}];
+const LEVELS=[{types:6,per:3,time:90,ice:3},{types:9,per:6,time:180,ice:12},{types:12,per:6,time:240,ice:22}];
+let curTheme=0;
 let level=0,state='playing',timeLeft=90,tools={shuffle:1,magnet:1,remove:1},revives=1,startedAt=0,shake=0;
 
 function clearItems(){items.forEach(it=>{scene.remove(it.mesh);if(it.alive)remB(it.body);});items=[];tweens.length=0;}
@@ -592,7 +696,7 @@ function startLevel(n){
   clearItems(); slots=[]; slotEls.forEach(e=>e.dataset.k='x'); renderSlots();
   tools={shuffle:1,magnet:1,remove:1}; revives=1;
   goose.visible=false; goose.position.set(0,0,0); goose.rotation.set(0,-.5,0);
-  const TH=THEMES[L.theme];
+  const TH=THEMES[curTheme];
   const idx=Array.from({length:TH.n},(_,i)=>TH.from+i).sort(()=>R()-.5).slice(0,L.types);
   const list=[]; idx.forEach(t=>{for(let k=0;k<L.per;k++)list.push(t);}); list.sort(()=>R()-.5);
   const cx=[-1.55,0,1.55], cz=[-2.25,-.75,.75,2.25];
@@ -601,7 +705,7 @@ function startLevel(n){
   for(let i=0;i<240;i++) world.step(1/60);
   items.forEach(sync);
   timeLeft=L.time; startedAt=performance.now(); state='playing';
-  $('#ov').hidden=true; $('#lvl').textContent=`第 ${n+1} 关 · ${TH.name}`; updateHUD();
+  $('#ov').hidden=true; $('#lvl').textContent=`${TH.name} ${n+1}/${LEVELS.length}`; updateHUD();
   if(L.ice) toast(`${L.ice} 件被冻住了，先点碎冰再拿`,2400);
 }
 function aliveCount(){let c=0;items.forEach(i=>{if(i.alive)c++;});return c;}
@@ -654,7 +758,8 @@ function win(){
   [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.18,'triangle',.12),i*110));
   goose.visible=true; goose.scale.setScalar(.01);
   tween(1.3,k=>{goose.scale.setScalar(Math.min(1.25,.01+k*2.5));goose.position.y=Math.sin(k*PI)*2.6;goose.rotation.y=-.5+k*PI*2;},()=>{
-    showOv('抓到大鹅了！',`第 ${level+1} 关用时 ${fmt(used)}，篮子清空。`,'下一关',()=>startLevel(level+1),'再玩一次本关',()=>startLevel(level));});
+    if(level+1>=LEVELS.length) showOv('全部通关！',`「${THEMES[curTheme].name}」${LEVELS.length} 关全部完成，最后一关用时 ${fmt(used)}。`,'换个主题',showMenu,'再玩一遍',()=>startLevel(0));
+    else showOv('抓到大鹅了！',`第 ${level+1} 关用时 ${fmt(used)}，篮子清空。`,'下一关',()=>startLevel(level+1),'再玩一次本关',()=>startLevel(level));});
 }
 function lose(why){
   state='lost'; beep(220,.35,'sawtooth',.08); buzz([40,60,40]);
@@ -798,7 +903,21 @@ function frame(t){
   renderer.render(scene,camera);
   requestAnimationFrame(frame);
 }
-resize(); startLevel(0); requestAnimationFrame(frame);
+function showMenu(){
+  state='menu'; $('#ov').hidden=true; $('#toast').style.opacity=0;
+  const box=$('#themes');
+  if(!box.childElementCount) THEMES.forEach((th,i)=>{
+    const b=document.createElement('button');b.className='theme';b.id='theme'+i;
+    const pics=document.createElement('div');pics.className='pics';
+    [0,3,6,9].forEach(k=>{const im=new Image();im.src=TYPES[th.from+k].thumb;im.alt=TYPES[th.from+k].name;pics.appendChild(im);});
+    const nm=document.createElement('b');nm.textContent=th.name;
+    const sub=document.createElement('small');sub.textContent=`${th.n} 种 · ${LEVELS.length} 关`;
+    b.append(pics,nm,sub);b.onclick=()=>{curTheme=i;$('#menu').hidden=true;startLevel(0);};box.appendChild(b);
+  });
+  $('#menu').hidden=false;
+}
+$('#home').onclick=showMenu;
+resize(); startLevel(0); showMenu(); requestAnimationFrame(frame);
 })();
 </script>
 
