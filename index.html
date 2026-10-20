@@ -26,7 +26,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 header{position:relative;z-index:2;background:linear-gradient(var(--wood-hi),var(--wood));
   padding-block:8px 12px;border-radius:0 0 20px 20px;box-shadow:0 4px 0 #5a3418,0 8px 18px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.pill{font-family:var(--display);color:var(--cream);font-size:20px;letter-spacing:.04em}
+.pill{font-family:var(--display);color:var(--cream);font-size:18px;letter-spacing:.04em;white-space:nowrap}
 .timer{font-family:var(--display);font-size:22px;color:var(--cream);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.22);padding:2px 12px;border-radius:999px;min-width:74px;text-align:center}
 .timer.low{color:#ffd0c9;background:rgba(226,74,59,.55)}
@@ -235,7 +235,7 @@ function vgrad(geo,bottom,top){ // vertex colour gradient along y
 const vmat=(o)=>C('vm'+JSON.stringify(o||{}),()=>new THREE.MeshStandardMaterial(Object.assign({vertexColors:true,roughness:.5},o||{})));
 
 /* ---------- item types: mesh + sphere/box collider ---------- */
-const TYPES=[
+const FOODS=[
  {name:'小笼包',thumb:[.3,0,0],shapes:[['b',[.4,.12,.4],[0,-.08,0]],['s',.26,[0,.02,0]]],
   build(){
     const g=C('bun',()=>{const pts=[new THREE.Vector2(.001,0),new THREE.Vector2(.45,0),new THREE.Vector2(.48,.03)];
@@ -330,6 +330,134 @@ const TYPES=[
       at(face(.95,true),[0,.08,.36]));}},
 ];
 
+/* ---------- animals: tsum-style round heads, features stuck onto the head surface ---------- */
+function Hd(r,sx,sy,sz,c){return {r,sx,sy,sz,c:c||[0,0,0]};}
+function surf(h,x,y,dz){
+  const a=h.r*h.sx,b=h.r*h.sy,c=h.r*h.sz,lx=x-h.c[0],ly=y-h.c[1];
+  const z=c*Math.sqrt(Math.max(0,1-(lx/a)**2-(ly/b)**2));
+  const n=V(lx/(a*a),ly/(b*b),z/(c*c)).normalize();
+  return {p:V(x,y,z+h.c[2]).addScaledVector(n,dz||0),n};
+}
+function stick(o,h,x,y,dz){const s=surf(h,x,y,dz);o.position.copy(s.p);o.lookAt(s.p.clone().add(s.n));return o;}
+const AM=(hex)=>mat(hex,{roughness:.5});
+function mkEye(es,ring){
+  const e=new THREE.Group(),inner=new THREE.Group();
+  if(ring) inner.add(part(sph(.078,14),FK.hi,[0,0,-.012],null,[1,1.15,.3]));
+  inner.add(part(sph(.062,14),FK.eye,null,null,[1,1.2,.45]));
+  inner.add(part(sph(.022,8),FK.hi,[.022,.034,.027]));
+  inner.add(part(sph(.011,6),FK.hi,[-.02,-.022,.027]));
+  inner.scale.setScalar(es||1); e.add(inner); return e;
+}
+function animalFace(h,o){
+  o=o||{}; const f=new THREE.Group(),eyes=[];
+  const ex=o.ex??.13, ey=o.ey??.04, dz=o.dz||0, es=o.es||1;
+  [-1,1].forEach(sd=>{
+    const e=mkEye(es,o.ring);
+    if(o.eyePos){const p=o.eyePos(sd);e.position.set(p[0],p[1],p[2]);} else stick(e,h,sd*ex,ey,dz+.006);
+    f.add(e); eyes.push(e);
+    if(o.blush!==false){const b=part(sph(.058,12),FK.blush,null,null,[1.3,.62,.2]);stick(b,h,sd*(ex+.1),(o.blushY??ey-.09),dz+.006);f.add(b);}
+  });
+  let smile=null,oh=null;
+  if(!o.noMouth){
+    const my=o.mouthY??ey-.11, mdz=(o.mouthDz??dz)+.006, w=o.mouthW||1;
+    smile=new THREE.Group();
+    if(o.mouth==='w'){[-1,1].forEach(sd=>smile.add(part(C('arcS',()=>new THREE.TorusGeometry(.026,.011,6,12,PI)),FK.mouth,[sd*.026,0,0],[0,0,PI])));}
+    else smile.add(part(C('arcM',()=>new THREE.TorusGeometry(.042,.013,6,14,PI)),FK.mouth,null,[0,0,PI],[w,w*.9,1]));
+    stick(smile,h,0,my,mdz);
+    oh=part(sph(.034,10),FK.mouth,null,null,[1,1.25,.4]); stick(oh,h,0,my-.02,mdz); oh.visible=false;
+    f.add(smile,oh);
+  }
+  f.traverse(x=>x.userData.noShadow=true);
+  f.userData.face={eyes,smile,oh}; return f;
+}
+function flat(r,sx,sy,col,h,x,y,dz,rz){const m=part(sph(r,14),typeof col==='number'?AM(col):col,null,null,[sx,sy,.22]);stick(m,h,x,y,dz||0);if(rz)m.rotateZ(rz);return m;}
+function whiskers(h,y0,col){const g=[],m=AM(col||0x5a4636);[-1,1].forEach(sd=>[0,1].forEach(k=>{const s=surf(h,sd*.24,y0-k*.045,.004);g.push(part(cyl(.006,.006,.2,4),m,[s.p.x+sd*.06,s.p.y,s.p.z],[0,0,PI/2+sd*(k?-.16:.12)]));}));return g;}
+const BACK=['b',[.2,.2,.04],[0,0,-.36]];
+const HEAD=[['s',.43,[0,0,0]],BACK];
+
+const ANIMALS=[
+ {name:'橘猫',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1.08,.92,.95),o=grp(part(sph(.42,30),AM(0xffa94d),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{o.add(part(cone(.14,.25,16),AM(0xffa94d),[sd*.27,.37,0],[0,0,-sd*.4]));o.add(part(cone(.085,.15,12),AM(0xffb3c3),[sd*.262,.35,.06],[0,0,-sd*.4]));});
+   [[-.09,.27,.25],[0,.31,0],[.09,.27,-.25]].forEach(([x,y,r])=>o.add(flat(.05,.4,1.5,0xe26f1d,h,x,y,-.004,r)));
+   [-1,1].forEach(sd=>o.add(flat(.05,.4,1.3,0xe26f1d,h,sd*.4,.02,-.004,sd*1.3)));
+   o.add(flat(.03,1.2,.85,0xff7f9a,h,0,-.04,.006));
+   whiskers(h,-.07).forEach(w=>o.add(w));
+   o.add(animalFace(h,{ex:.14,ey:.05,mouth:'w',mouthY:-.085}));return o;}},
+ {name:'小狗',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1.05,.95,.95),o=grp(part(sph(.42,30),AM(0xf6dfb6),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>o.add(part(sph(.2,16),AM(0x8a5a2e),[sd*.41,.1,-.02],[0,0,sd*.3],[.5,1.1,.32])));
+   o.add(flat(.11,1,1.15,0x8a5a2e,h,.14,.07,-.004));
+   const mz=part(sph(.15,18),AM(0xfff6e8),null,null,[1.25,.85,.6]);stick(mz,h,0,-.1,-.03);o.add(mz);
+   const hm=Hd(.15,1.25,.85,.6,[mz.position.x,mz.position.y,mz.position.z]);
+   const ns=part(sph(.048,12),AM(0x2a1b12),null,null,[1.35,1,.85]);ns.position.set(0,-.05,mz.position.z+.07);o.add(ns);
+   const tg=part(sph(.04,10),AM(0xff6f8a),[0,-.2,mz.position.z+.04],[.3,0,0],[1,1.25,.45]);o.add(tg);
+   o.add(animalFace(h,{ex:.14,ey:.06,mouthY:-.15,mouthDz:.055,blushY:-.04}));return o;}},
+ {name:'小猪',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1.08,.95,.95),pk=0xffb3c6,o=grp(part(sph(.42,30),AM(pk),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>o.add(part(cone(.12,.2,12),AM(0xff93ad),[sd*.27,.36,.05],[.45,0,-sd*.5])));
+   const sn=new THREE.Group();sn.add(part(cyl(.125,.13,.09,26),AM(0xff8fab),null,[PI/2,0,0]));
+   [-1,1].forEach(sd=>sn.add(part(sph(.026,8),AM(0xb8456a),[sd*.045,0,.046],null,[.8,1.25,.4])));
+   stick(sn,h,0,-.08,.025);o.add(sn);
+   o.add(animalFace(h,{ex:.16,ey:.1,mouthY:-.23,blushY:-.0,mouthW:.8}));return o;}},
+ {name:'熊猫',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1.08,.94,.95),bk=0x232323,o=grp(part(sph(.42,30),AM(0xfafafa),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.13,16),AM(bk),[sd*.3,.33,-.02],null,[1,1,.7]));o.add(flat(.1,.95,1.25,bk,h,sd*.135,.03,-.002,sd*-.5));});
+   o.add(flat(.04,1.4,1,bk,h,0,-.07,.006));
+   o.add(animalFace(h,{ex:.135,ey:.04,ring:true,mouthY:-.12,es:.95}));return o;}},
+ {name:'青蛙',thumb:[.25,0,0],shapes:[['s',.42,[0,0,0]],['s',.13,[-.2,.3,.15]],['s',.13,[.2,.3,.15]],BACK],build(){
+   const h=Hd(.42,1.18,.82,.95),g=0x6fd35a,o=grp(part(sph(.42,30),AM(g),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.14,18),AM(g),[sd*.2,.28,.12]));o.add(part(sph(.105,16),AM(0xffffff),[sd*.2,.3,.19]));});
+   o.add(part(sph(.3,20),AM(0xc8f2a8),[0,-.16,.12],null,[1.1,.6,.7]));
+   o.add(animalFace(h,{eyePos:sd=>[sd*.2,.31,.295],es:1.05,ex:.2,ey:-.02,blushY:-.04,mouthY:-.1,mouthW:2.2}));return o;}},
+ {name:'兔子',thumb:[.1,0,0],shapes:[['s',.42,[0,0,0]],['s',.1,[-.14,.6,0]],['s',.1,[.14,.6,0]],BACK],build(){
+   const h=Hd(.42,1.0,.95,.95),w=0xfffcf6,o=grp(part(sph(.42,30),AM(w),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{const ear=new THREE.Group();ear.add(part(sph(.2,18),AM(w),null,null,[.42,1.25,.28]));ear.add(part(sph(.2,14),AM(0xffa7bd),[0,-.01,.014],null,[.24,1.0,.12]));ear.position.set(sd*.14,.58,-.03);ear.rotation.set(-.12,0,-sd*.16);o.add(ear);});
+   o.add(flat(.032,1.3,.9,0xff7f9a,h,0,-.04,.006));
+   const t=part(box(.06,.05,.02),AM(0xffffff));stick(t,h,0,-.14,.004);o.add(t);
+   o.add(animalFace(h,{ex:.13,ey:.06,mouth:'w',mouthY:-.09}));return o;}},
+ {name:'小熊',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1.08,.95,.95),br=0x9c6233,o=grp(part(sph(.42,30),AM(br),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.13,16),AM(br),[sd*.3,.32,-.02],null,[1,1,.65]));o.add(part(sph(.08,12),AM(0xe7b98d),[sd*.3,.32,.05],null,[1,1,.3]));});
+   const mz=part(sph(.15,18),AM(0xf3d2a8),null,null,[1.2,.9,.55]);stick(mz,h,0,-.1,-.03);o.add(mz);
+   o.add(part(sph(.046,12),AM(0x3a2214),[0,-.055,mz.position.z+.075],null,[1.4,1,.85]));
+   o.add(animalFace(h,{ex:.14,ey:.06,mouthY:-.155,mouthDz:.05,blushY:-.03}));return o;}},
+ {name:'小鸡',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1,.97,1),y=0xffe14d,o=grp(part(sph(.42,30),AM(y),null,null,[h.sx,h.sy,h.sz]));
+   o.add(part(cone(.05,.18,8),AM(y),[0,.47,0]),part(cone(.045,.15,8),AM(y),[.07,.45,0],[0,0,-.5]),part(cone(.045,.15,8),AM(y),[-.07,.45,0],[0,0,.5]));
+   [-1,1].forEach(sd=>o.add(part(sph(.15,12),AM(0xffd21f),[sd*.4,-.06,0],[0,0,-sd*.4],[.42,1,.8])));
+   const bk=new THREE.Group();bk.add(part(cone(.07,.12,10),AM(0xff9a1f),null,[PI/2,0,0]));stick(bk,h,0,-.06,.05);o.add(bk);
+   o.add(animalFace(h,{ex:.14,ey:.08,noMouth:true,blushY:-.05}));return o;}},
+ {name:'企鹅',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.42,1,1.02,.95),o=grp(part(sph(.42,30),AM(0x2f3f78),null,null,[h.sx,h.sy,h.sz]));
+   const hm=Hd(.33,1.15,1,1,[0,-.05,.1]);o.add(part(sph(.33,26),AM(0xffffff),[0,-.05,.1],null,[1.15,1,1]));
+   [-1,1].forEach(sd=>o.add(part(sph(.15,12),AM(0x2f3f78),[sd*.4,-.1,0],[0,0,-sd*.35],[.4,1,.75])));
+   const bk=new THREE.Group();bk.add(part(cone(.06,.12,10),AM(0xffa21f),null,[PI/2,0,0]));stick(bk,hm,0,-.07,.04);o.add(bk);
+   o.add(animalFace(hm,{ex:.12,ey:.04,noMouth:true,blushY:-.06}));return o;}},
+ {name:'小鲸鱼',thumb:[.15,-.35,0],shapes:[['s',.38,[-.1,0,0]],['s',.38,[.1,0,0]],BACK],build(){
+   const h=Hd(.42,1.2,.88,.95),bl=0x4ea3f5,o=grp(part(sph(.42,30),AM(bl),null,null,[h.sx,h.sy,h.sz]));
+   o.add(part(sph(.4,24),AM(0xe2f2ff),[0,-.15,.08],null,[1.08,.55,.85]));
+   [-1,1].forEach(sd=>o.add(part(sph(.15,12),AM(bl),[sd*.15,.2,-.45],[.4,0,sd*.6],[1.2,.35,.6])));
+   o.add(part(cyl(.022,.03,.12,8),AM(0x9ad7ff),[0,.42,0]));
+   [[0,.52,0],[-.06,.5,0],[.06,.5,0]].forEach(p=>o.add(part(sph(.04,8),AM(0x9ad7ff),p)));
+   o.add(animalFace(h,{ex:.15,ey:.06,blushY:-.02,mouthY:-.06}));return o;}},
+ {name:'章鱼',thumb:[.1,0,0],shapes:[['s',.42,[0,.03,0]],BACK],build(){
+   const h=Hd(.4,1,1.08,1,[0,.08,0]),pu=0xb47ff2,o=grp(part(sph(.4,30),AM(pu),[0,.08,0],null,[1,1.08,1]));
+   for(let i=0;i<8;i++){const a=i/8*PI*2+PI/8,x=Math.cos(a),z=Math.sin(a);o.add(part(sph(.1,12),AM(pu),[x*.28,-.3,z*.28],null,[1,.85,1]));o.add(part(sph(.06,10),AM(pu),[x*.38,-.34,z*.38]));}
+   [[-.2,.38],[.15,.42],[.27,.22]].forEach(([x,y])=>o.add(flat(.045,1,1,0xd9c0fd,h,x,y,-.003)));
+   o.add(animalFace(h,{ex:.13,ey:.05,mouthY:-.07}));return o;}},
+ {name:'小老鼠',thumb:[.15,0,0],shapes:HEAD,build(){
+   const h=Hd(.4,1.05,.95,1),gr=0xb7bdc9,o=grp(part(sph(.4,30),AM(gr),null,null,[h.sx,h.sy,h.sz]));
+   [-1,1].forEach(sd=>{o.add(part(sph(.18,18),AM(gr),[sd*.31,.33,-.04],null,[1,1,.3]));o.add(part(sph(.125,14),AM(0xffb1c2),[sd*.31,.33,.0],null,[1,1,.14]));});
+   o.add(flat(.04,1.2,1,0xff7f9a,h,0,-.05,.008));
+   whiskers(h,-.07,0x6b7280).forEach(w=>o.add(w));
+   o.add(part(C('mtail',()=>new THREE.TorusGeometry(.14,.018,6,16,PI*1.3)),AM(0xffb1c2),[.18,-.22,-.36],[0,.6,0]));
+   o.add(animalFace(h,{ex:.13,ey:.05,mouth:'w',mouthY:-.1}));return o;}},
+];
+
+const TYPES=ANIMALS.concat(FOODS);
+const THEMES=[{name:'萌宠乐园',from:0,n:ANIMALS.length},{name:'美食小摊',from:ANIMALS.length,n:FOODS.length}];
+
 /* ---------- goose (hidden at the bottom) ---------- */
 function buildGoose(){
   const w=mat(0xfafafa,{roughness:.5}),o=mat(0xf28a1c,{roughness:.4}),k=mat(0x111111);
@@ -399,13 +527,13 @@ function crackIce(it){
 function createItem(type,x,y,z,frozen){
   const T=TYPES[type], mesh=T.build(); mesh.scale.setScalar(S);
   let fc=null; mesh.traverse(o=>{if(o.userData.face)fc=o.userData.face; if(o.isMesh&&!o.userData.noShadow){o.castShadow=true;o.receiveShadow=true;}});
-  const body=new CANNON.Body({mass:1,linearDamping:.12,angularDamping:.35});
+  const body=new CANNON.Body({mass:1,linearDamping:.12,angularDamping:T.shapes.includes(BACK)?.6:.35});
   T.shapes.forEach(s=>{const off=new CANNON.Vec3(s[2][0]*S,s[2][1]*S,s[2][2]*S);
     body.addShape(s[0]==='s'?new CANNON.Sphere(s[1]*S):new CANNON.Box(new CANNON.Vec3(s[1][0]*S,s[1][1]*S,s[1][2]*S)),off);});
   body.position.set(x,y,z);
   { // most items land face-up toward the camera, a few tumble randomly
     let q;
-    if(fc&&R()<.85){
+    if(fc&&(T.shapes.includes(BACK)||R()<.85)){
       if(!T.faceDir){mesh.updateMatrixWorld(true);let fo=null;mesh.traverse(o=>{if(o.userData.face)fo=o;});T.faceDir=fo.getWorldDirection(V(0,0,0)).normalize();}
       const tgt=V((R()-.5)*.6,1,.45+(R()-.5)*.5).normalize();
       q=new THREE.Quaternion().setFromUnitVectors(T.faceDir,tgt);
@@ -455,7 +583,7 @@ function tween(dur,fn,done){tweens.push({t:0,dur,fn,done});}
 const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
 
 /* ---------- game state ---------- */
-const LEVELS=[{types:6,per:3,time:90,ice:3},{types:9,per:6,time:180,ice:12},{types:12,per:6,time:240,ice:22}];
+const LEVELS=[{theme:0,types:6,per:3,time:90,ice:3},{theme:1,types:9,per:6,time:180,ice:12},{theme:0,types:12,per:6,time:240,ice:22}];
 let level=0,state='playing',timeLeft=90,tools={shuffle:1,magnet:1,remove:1},revives=1,startedAt=0,shake=0;
 
 function clearItems(){items.forEach(it=>{scene.remove(it.mesh);if(it.alive)remB(it.body);});items=[];tweens.length=0;}
@@ -464,7 +592,8 @@ function startLevel(n){
   clearItems(); slots=[]; slotEls.forEach(e=>e.dataset.k='x'); renderSlots();
   tools={shuffle:1,magnet:1,remove:1}; revives=1;
   goose.visible=false; goose.position.set(0,0,0); goose.rotation.set(0,-.5,0);
-  const idx=TYPES.map((_,i)=>i).sort(()=>R()-.5).slice(0,L.types);
+  const TH=THEMES[L.theme];
+  const idx=Array.from({length:TH.n},(_,i)=>TH.from+i).sort(()=>R()-.5).slice(0,L.types);
   const list=[]; idx.forEach(t=>{for(let k=0;k<L.per;k++)list.push(t);}); list.sort(()=>R()-.5);
   const cx=[-1.55,0,1.55], cz=[-2.25,-.75,.75,2.25];
   const iceSet=new Set(list.map((_,i)=>i).sort(()=>R()-.5).slice(0,L.ice||0));
@@ -472,7 +601,7 @@ function startLevel(n){
   for(let i=0;i<240;i++) world.step(1/60);
   items.forEach(sync);
   timeLeft=L.time; startedAt=performance.now(); state='playing';
-  $('#ov').hidden=true; $('#lvl').textContent=`第 ${n+1} 关`; updateHUD();
+  $('#ov').hidden=true; $('#lvl').textContent=`第 ${n+1} 关 · ${TH.name}`; updateHUD();
   if(L.ice) toast(`${L.ice} 件被冻住了，先点碎冰再拿`,2400);
 }
 function aliveCount(){let c=0;items.forEach(i=>{if(i.alive)c++;});return c;}
